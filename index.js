@@ -1,7 +1,10 @@
 'use strict';
 const _ = require('lodash');
+const mongoose = require('mongoose');
+const moment = require('moment');
 // const Gpio = require('pigpio').Gpio;
-const Gpio = require('./pigpio_temp').Gpio;
+const PiGpio = require('./pigpio_temp');
+const Gpio = PiGpio.Gpio;
 const Pos = require('./lib');
 // const PrintJob = new Pos.PrintJob();
 const Printer = new Pos.Printer();
@@ -9,7 +12,21 @@ const Printer = new Pos.Printer();
 
 const LoopWatcher = require('./utils/loop-watcher');
 const ticket = require('./utils/print-ticket');
+const Ticket = require('./models/ticket-model');
 
+PiGpio.initialize();
+// SIGINT HANDLER //
+process.on('SIGINT', () => {
+    console.log('Received SIGINT.  Press Control-D to exit.');
+});
+
+function handle() {
+    PiGpio.terminate();
+    Printer.disconnect();
+    console.log('Terminating ....');
+}
+
+// SIGINT HANDLER //
 
 const EntryLoop = new Gpio(5, {
     mode: Gpio.INPUT,
@@ -34,8 +51,14 @@ const ExitLoop = new Gpio(13, {
     edge: Gpio.EITHER_EDGE
 });
 
+mongoose.connect('mongodb://192.168.1.2:27017/bayTrans_v004', { useMongoClient: true });
+mongoose.Promise = global.Promise;
+
 const entryLoopActive = new LoopWatcher();
 const exitLoopActive = new LoopWatcher();
+
+let thisBarcode = undefined;
+let thisIssuedAt = undefined;
 
 console.log('Ticket Printer Module Acitve. Waiting for inputs....');
 
@@ -64,17 +87,25 @@ TicketButton.on('interrupt', _.debounce((level) => {
 
 function printTicket() {
     const ticketData = ticket.ticketData();
+    const printJobData = ticketData.printJob;
+    thisBarcode = ticketData.barcode;
+    thisIssuedAt = moment(ticketData.issuedAt, 'DDMMYYHHmmss');
     Printer.connect();
-    Printer.print(ticketData);
+    Printer.print(printJobData);
     EntryGate.trigger(100, 1);
 }
 
 function saveTicket() {
-    //save to DB
+    const newTicket = new Ticket({
+        _id: thisBarcode,
+        issuedAt: thisIssuedAt
+    });
+
+    newTicket.save()
+        .then(result => {
+            thisBarcode = undefined;
+            thisIssuedAt = undefined;
+        })
+        .catch(err => console.error(err))
 }
 
-
-process.on('SIGINT', function () {
-    Printer.disconnect();
-    console.log('exiting');
-});
