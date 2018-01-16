@@ -4,7 +4,7 @@
   "description": "custom POS printer lib",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,12 @@
   "bugs": {
     "url": "https://github.com/vrn-dev/ronin-custompos/issues"
   },
-  "homepage": "https://github.com/vrn-dev/ronin-custompos#readme"
+  "homepage": "https://github.com/vrn-dev/ronin-custompos#readme",
+  "dependencies": {
+    "iconv-lite": "^0.4.19",
+    "lodash": "^4.17.4",
+    "moment": "^2.20.1",
+    "pigpio": "^0.6.4",
+    "usb": "^1.3.1"
+  }
 }

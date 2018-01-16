@@ -1,0 +1,9 @@
+.DS_*
+node_modules
+*.sublime*
+psd
+thumb
+*.log
+package-lock.json
+.idea
+pigpio_temp
